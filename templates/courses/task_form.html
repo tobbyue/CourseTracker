@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Task - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'courses:teacher_dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'courses:detail' course.id %}">{{ course.title }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Add Task</li>
+            </ol>
+        </nav>
+        <h1>Add Task to {{ course.title }}</h1>
+        <div class="card shadow-sm mt-3">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="invalid-feedback d-block" role="alert">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i>Add Task
+                        </button>
+                        <a href="{% url 'courses:detail' course.id %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

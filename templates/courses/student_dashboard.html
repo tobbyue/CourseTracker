@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - CourseTracker{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Student Learning Dashboard</h1>
+
+<!-- Progress Overview Cards -->
+<section aria-label="Progress overview" class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card text-center bg-primary text-white shadow-sm">
+            <div class="card-body">
+                <h2 class="display-4 fw-bold">{{ joined_count }}</h2>
+                <p class="mb-0">Joined Courses</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center bg-success text-white shadow-sm">
+            <div class="card-body">
+                <h2 class="display-4 fw-bold">{{ completed_count }}</h2>
+                <p class="mb-0">Completed Tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center bg-warning text-dark shadow-sm">
+            <div class="card-body">
+                <h2 class="display-4 fw-bold">{{ total_tasks|add:"-"|add:completed_count|default:total_tasks }}</h2>
+                <p class="mb-0">Pending Tasks</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sort & Filter Bar [S2] -->
+<section aria-label="Task list">
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 class="h5 mb-0">My Tasks</h2>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" class="d-flex gap-2 justify-content-end" id="filter-form">
+                        <select name="sort" class="form-select form-select-sm" style="max-width: 160px;"
+                                aria-label="Sort tasks by" onchange="this.form.submit()">
+                            <option value="deadline" {% if current_sort == 'deadline' %}selected{% endif %}>Sort: Deadline</option>
+                            <option value="course" {% if current_sort == 'course' %}selected{% endif %}>Sort: Course</option>
+                        </select>
+                        <select name="status" class="form-select form-select-sm" style="max-width: 160px;"
+                                aria-label="Filter by status" onchange="this.form.submit()">
+                            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Tasks</option>
+                            <option value="pending" {% if current_filter == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="completed" {% if current_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if task_list %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" aria-label="Task list">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Task</th>
+                            <th scope="col">Course</th>
+                            <th scope="col">Deadline</th>
+                            <th scope="col" class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in task_list %}
+                        <tr class="task-row {% if item.is_completed %}table-success{% endif %}"
+                            data-task-id="{{ item.task.id }}" data-completed="{{ item.is_completed|yesno:'true,false' }}">
+                            <td>
+                                <a href="{% url 'courses:task_detail' item.task.id %}" class="text-decoration-none">
+                                    {{ item.task.title }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ item.task.course.course_code }}</span>
+                                {{ item.task.course.title }}
+                            </td>
+                            <td>
+                                <time datetime="{{ item.task.deadline|date:'Y-m-d' }}">
+                                    {{ item.task.deadline|date:"M d, Y H:i" }}
+                                </time>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm toggle-complete-btn
+                                    {% if item.is_completed %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                                    data-task-id="{{ item.task.id }}"
+                                    data-url="{% url 'courses:toggle_task' item.task.id %}"
+                                    aria-label="{% if item.is_completed %}Mark as incomplete{% else %}Mark as complete{% endif %}">
+                                    <i class="bi {% if item.is_completed %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
+                                    {% if item.is_completed %}Done{% else %}Complete{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox display-4"></i>
+                <p class="mt-2">No tasks yet. <a href="{% url 'courses:discover' %}">Discover courses</a> to get started!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX task completion toggle [M5]
+document.querySelectorAll('.toggle-complete-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const url = this.dataset.url;
+        const taskId = this.dataset.taskId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || '{{ csrf_token }}';
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+            const icon = this.querySelector('i');
+            if (data.is_completed) {
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                icon.classList.remove('bi-circle');
+                icon.classList.add('bi-check-circle-fill');
+                this.innerHTML = '<i class="bi bi-check-circle-fill"></i> Done';
+                row.classList.add('table-success');
+                this.setAttribute('aria-label', 'Mark as incomplete');
+            } else {
+                this.classList.remove('btn-success');
+                this.classList.add('btn-outline-secondary');
+                icon.classList.remove('bi-check-circle-fill');
+                icon.classList.add('bi-circle');
+                this.innerHTML = '<i class="bi bi-circle"></i> Complete';
+                row.classList.remove('table-success');
+                this.setAttribute('aria-label', 'Mark as complete');
+            }
+            // Announce status change for screen readers
+            const status = document.createElement('div');
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
+            status.className = 'visually-hidden';
+            status.textContent = data.is_completed ? 'Task marked as completed' : 'Task marked as incomplete';
+            document.body.appendChild(status);
+            setTimeout(() => status.remove(), 3000);
+        });
+    });
+});
+</script>
+{% endblock %}

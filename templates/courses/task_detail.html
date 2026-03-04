@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ task.title }} - CourseTracker{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'courses:student_dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item">{{ task.course.title }}</li>
+        <li class="breadcrumb-item active" aria-current="page">{{ task.title }}</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1>{{ task.title }}</h1>
+                <p class="text-muted">
+                    <span class="badge bg-primary me-2">{{ task.course.course_code }}</span>
+                    {{ task.course.title }}
+                </p>
+            </div>
+            <span class="badge fs-6 {% if is_completed %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                {% if is_completed %}<i class="bi bi-check-circle me-1"></i>Completed
+                {% else %}<i class="bi bi-clock me-1"></i>Pending{% endif %}
+            </span>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <div class="col-md-8">
+                <h2 class="h5">Instructions</h2>
+                <p>{{ task.description|default:"No detailed instructions provided." }}</p>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h3 class="h6">Deadline</h3>
+                        <p class="mb-0">
+                            <i class="bi bi-calendar-event me-1"></i>
+                            <time datetime="{{ task.deadline|date:'Y-m-d' }}">
+                                {{ task.deadline|date:"F d, Y \a\t H:i" }}
+                            </time>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if is_enrolled %}
+        <div class="mt-4">
+            <button class="btn {% if is_completed %}btn-success{% else %}btn-primary{% endif %} toggle-complete-btn"
+                    data-task-id="{{ task.id }}"
+                    data-url="{% url 'courses:toggle_task' task.id %}">
+                {% if is_completed %}
+                <i class="bi bi-check-circle-fill me-1"></i>Completed - Click to Undo
+                {% else %}
+                <i class="bi bi-check-lg me-1"></i>Mark as Completed
+                {% endif %}
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelector('.toggle-complete-btn')?.addEventListener('click', function() {
+    fetch(this.dataset.url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    })
+    .then(res => res.json())
+    .then(data => { location.reload(); });
+});
+</script>
+{% endblock %}

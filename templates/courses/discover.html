@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Discover Courses - CourseTracker{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Course Discovery</h1>
+
+<!-- Search Bar [C1] -->
+<section aria-label="Course search" class="mb-4">
+    <form method="get" class="row g-2" id="search-form">
+        <div class="col-md-8">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" id="course-search"
+                       placeholder="Search by course name or code..."
+                       value="{{ query }}" aria-label="Search courses"
+                       autocomplete="off">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary w-100">Search</button>
+        </div>
+    </form>
+</section>
+
+<!-- Course Grid [M4, S1] -->
+<section aria-label="Available courses">
+    <div class="row" id="course-grid">
+        {% for course in courses %}
+        <div class="col-md-6 col-lg-4 mb-4 course-card">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h2 class="h5 card-title mb-0">{{ course.title }}</h2>
+                        <span class="badge bg-primary">{{ course.course_code }}</span>
+                    </div>
+                    <p class="text-muted small mb-1">
+                        <i class="bi bi-person me-1"></i>{{ course.teacher.username }}
+                    </p>
+                    <p class="card-text flex-grow-1">
+                        {{ course.description|truncatewords:20|default:"No description available." }}
+                    </p>
+
+                    <!-- Rating Display [S1] -->
+                    <div class="mb-2">
+                        {% with avg=course.average_rating %}
+                        {% if avg %}
+                        <span class="text-warning" aria-label="Average rating {{ avg }} out of 5">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= avg %}
+                                <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                <i class="bi bi-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                        <small class="text-muted">({{ avg }})</small>
+                        {% else %}
+                        <small class="text-muted">No ratings yet</small>
+                        {% endif %}
+                        {% endwith %}
+                        <a href="{% url 'feedback:course_reviews' course.id %}" class="small ms-2">Reviews</a>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+                        <small class="text-muted">
+                            <i class="bi bi-people me-1"></i>{{ course.enrolled_count }} enrolled
+                        </small>
+                        {% if course.id in enrolled_ids %}
+                        <span class="badge bg-success"><i class="bi bi-check-lg"></i> Joined</span>
+                        {% else %}
+                        <a href="{% url 'courses:join' course.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i>Join
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="bi bi-book display-4"></i>
+            <p class="mt-2">No courses found. Try a different search.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX live search [C1]
+let searchTimer;
+const searchInput = document.getElementById('course-search');
+const courseGrid = document.getElementById('course-grid');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            const query = this.value.trim();
+            fetch(`{% url 'courses:discover' %}?q=${encodeURIComponent(query)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.courses.length === 0) {
+                    courseGrid.innerHTML = `
+                        <div class="col-12 text-center py-5 text-muted">
+                            <i class="bi bi-book display-4"></i>
+                            <p class="mt-2">No courses found. Try a different search.</p>
+                        </div>`;
+                    return;
+                }
+                let html = '';
+                data.courses.forEach(c => {
+                    const stars = c.avg_rating
+                        ? '&#9733;'.repeat(Math.round(c.avg_rating)) + ` (${c.avg_rating})`
+                        : 'No ratings yet';
+                    const joinBtn = c.is_enrolled
+                        ? '<span class="badge bg-success"><i class="bi bi-check-lg"></i> Joined</span>'
+                        : `<a href="/courses/${c.id}/join/" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Join</a>`;
+                    html += `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h2 class="h5 card-title mb-0">${c.title}</h2>
+                                    <span class="badge bg-primary">${c.course_code}</span>
+                                </div>
+                                <p class="text-muted small mb-1"><i class="bi bi-person me-1"></i>${c.teacher}</p>
+                                <p class="card-text flex-grow-1">${c.description || 'No description'}</p>
+                                <div class="mb-2"><span class="text-warning">${stars}</span></div>
+                                <div class="d-flex justify-content-between align-items-center mt-auto">
+                                    <small class="text-muted"><i class="bi bi-people me-1"></i>${c.enrolled_count} enrolled</small>
+                                    ${joinBtn}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                courseGrid.innerHTML = html;
+            });
+        }, 300);
+    });
+}
+</script>
+{% endblock %}

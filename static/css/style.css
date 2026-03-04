@@ -1,0 +1,137 @@
+/* ============================================================
+   CourseTracker - Custom Styles
+   Group CT - Course Management and Tracking System
+   ============================================================ */
+
+/* --- Accessibility: Skip Link (WCAG 2.1.1) --- */
+.skip-link {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    background: #0d6efd;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    z-index: 9999;
+    transition: top 0.2s;
+}
+.skip-link:focus {
+    top: 0;
+}
+
+/* --- Accessibility: Focus Visible (WCAG 2.4.7) --- */
+*:focus-visible {
+    outline: 3px solid #0d6efd;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* --- General Layout --- */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+main {
+    flex: 1;
+}
+
+/* --- Cards --- */
+.card {
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* --- Task Rows --- */
+.task-row {
+    transition: background-color 0.2s ease;
+}
+
+.task-row.table-success {
+    opacity: 0.8;
+}
+
+.toggle-complete-btn {
+    min-width: 100px;
+    transition: all 0.2s ease;
+}
+
+/* --- Star Rating Input --- */
+.star-rating .form-check {
+    padding: 0;
+    margin: 0;
+}
+
+.star-rating .form-check input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.star-rating .star-label {
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.star-rating .star-label:hover {
+    transform: scale(1.2);
+}
+
+.star-rating .form-check input[type="radio"]:checked + .star-label i {
+    color: #ffc107 !important;
+}
+
+.star-rating .form-check input[type="radio"]:focus-visible + .star-label {
+    outline: 3px solid #0d6efd;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* --- Progress Cards --- */
+.display-4 {
+    font-weight: 700;
+}
+
+/* --- Responsive adjustments --- */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    .display-4 {
+        font-size: 2rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .table {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+}
