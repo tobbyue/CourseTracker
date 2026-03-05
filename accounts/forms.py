@@ -32,9 +32,16 @@ class RegisterForm(UserCreationForm):
                 'aria-label': self.fields[field_name].label or field_name.title(),
             })
 
+    def clean_email(self):
+        """Ensure email is unique across users."""
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('An account with this email already exists.')
+        return email
+
 
 class LoginForm(forms.Form):
-    """Login form with email and password fields."""
+    """Login form with username, password, and remember me option."""
     username = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control',
@@ -50,3 +57,42 @@ class LoginForm(forms.Form):
             'aria-label': 'Password',
         })
     )
+    remember_me = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'aria-label': 'Remember me',
+        })
+    )
+
+
+class ProfileForm(forms.ModelForm):
+    """Form for editing user profile information."""
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name', 'email')
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'First Name',
+                'aria-label': 'First Name',
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Last Name',
+                'aria-label': 'Last Name',
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Email Address',
+                'aria-label': 'Email Address',
+            }),
+        }
+
+    def clean_email(self):
+        """Ensure email is unique (excluding current user)."""
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('An account with this email already exists.')
+        return email

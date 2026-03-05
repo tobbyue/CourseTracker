@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - CourseTracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1 class="mb-4">My Profile</h1>
+
+        <div class="row">
+            <!-- Profile Info Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm text-center">
+                    <div class="card-body py-4">
+                        <div class="mb-3">
+                            <i class="bi bi-person-circle display-1 text-primary"></i>
+                        </div>
+                        <h2 class="h5 fw-bold">{{ user.username }}</h2>
+                        <span class="badge {% if user.is_teacher %}bg-info{% else %}bg-success{% endif %} mb-2">
+                            {% if user.is_teacher %}
+                            <i class="bi bi-person-workspace me-1"></i>Teacher
+                            {% else %}
+                            <i class="bi bi-backpack me-1"></i>Student
+                            {% endif %}
+                        </span>
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-envelope me-1"></i>{{ user.email|default:"No email set" }}
+                        </p>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-calendar me-1"></i>Joined {{ user.date_joined|date:"M d, Y" }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mt-3">
+                    <div class="card-body">
+                        <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-key me-1"></i>Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Form Card -->
+            <div class="col-md-8 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h2 class="h5 mb-0">Edit Profile</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+
+                            <div class="mb-3">
+                                <label for="id_first_name" class="form-label">First Name</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block" role="alert">
+                                    {{ form.first_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_last_name" class="form-label">Last Name</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block" role="alert">
+                                    {{ form.last_name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="id_email" class="form-label">Email Address</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback d-block" role="alert">
+                                    {{ form.email.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Role</label>
+                                <input type="text" class="form-control" value="{{ user.get_role_display }}"
+                                       disabled aria-label="User role (cannot be changed)">
+                                <small class="form-text text-muted">Role cannot be changed after registration.</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

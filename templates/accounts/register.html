@@ -36,7 +36,8 @@
                         <label for="id_username" class="form-label">Username</label>
                         {{ form.username }}
                         {% if form.username.errors %}
-                        <div class="invalid-feedback d-block" role="alert">{{ form.username.errors.0 }}</div>
+                        <div class="invalid-feedback d-block" role="alert"
+                             id="username-error">{{ form.username.errors.0 }}</div>
                         {% endif %}
                         <small class="form-text text-muted">{{ form.username.help_text }}</small>
                     </div>
@@ -45,7 +46,8 @@
                         <label for="id_email" class="form-label">Email</label>
                         {{ form.email }}
                         {% if form.email.errors %}
-                        <div class="invalid-feedback d-block" role="alert">{{ form.email.errors.0 }}</div>
+                        <div class="invalid-feedback d-block" role="alert"
+                             id="email-error">{{ form.email.errors.0 }}</div>
                         {% endif %}
                     </div>
 
@@ -53,15 +55,21 @@
                         <label for="id_password1" class="form-label">Password</label>
                         {{ form.password1 }}
                         {% if form.password1.errors %}
-                        <div class="invalid-feedback d-block" role="alert">{{ form.password1.errors.0 }}</div>
+                        <div class="invalid-feedback d-block" role="alert"
+                             id="password1-error">{{ form.password1.errors.0 }}</div>
                         {% endif %}
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Must be at least 8 characters. Can't be entirely numeric or too common.
+                        </small>
                     </div>
 
                     <div class="mb-3">
                         <label for="id_password2" class="form-label">Confirm Password</label>
                         {{ form.password2 }}
                         {% if form.password2.errors %}
-                        <div class="invalid-feedback d-block" role="alert">{{ form.password2.errors.0 }}</div>
+                        <div class="invalid-feedback d-block" role="alert"
+                             id="password2-error">{{ form.password2.errors.0 }}</div>
                         {% endif %}
                     </div>
 
@@ -78,4 +86,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add aria-invalid attribute to fields with errors (WCAG 3.3.1)
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.invalid-feedback.d-block').forEach(function(errorDiv) {
+        const fieldId = errorDiv.id ? errorDiv.id.replace('-error', '') : null;
+        if (fieldId) {
+            const field = document.getElementById('id_' + fieldId);
+            if (field) {
+                field.setAttribute('aria-invalid', 'true');
+                field.setAttribute('aria-describedby', errorDiv.id);
+                field.classList.add('is-invalid');
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

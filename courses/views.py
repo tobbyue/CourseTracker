@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q, Count
 from django.utils import timezone
+from accounts.decorators import student_required, teacher_required
 from .models import Course, Task, Enrollment, TaskCompletion
 from .forms import CourseForm, TaskForm
 
@@ -12,7 +13,7 @@ from .forms import CourseForm, TaskForm
 # Student Views
 # ============================================================
 
-@login_required
+@student_required
 def student_dashboard(request):
     """
     Student dashboard: shows enrolled courses, task progress,
@@ -54,19 +55,21 @@ def student_dashboard(request):
     elif sort_by == 'course':
         task_list.sort(key=lambda t: t['task'].course.title)
 
-    # Stats
+    # Stats - calculate pending correctly
     total_tasks = Task.objects.filter(course__in=enrolled_courses).count()
     completed_count = TaskCompletion.objects.filter(
         student=request.user,
         is_completed=True,
         task__course__in=enrolled_courses
     ).count()
+    pending_count = total_tasks - completed_count
 
     context = {
         'enrolled_courses': enrolled_courses,
         'task_list': task_list,
         'joined_count': len(enrolled_courses),
         'completed_count': completed_count,
+        'pending_count': pending_count,
         'total_tasks': total_tasks,
         'current_sort': sort_by,
         'current_filter': filter_status,
@@ -190,13 +193,9 @@ def toggle_task_completion(request, task_id):
 # Teacher Views
 # ============================================================
 
-@login_required
+@teacher_required
 def teacher_dashboard(request):
     """Teacher dashboard: overview of owned courses. [Implements M2]"""
-    if not request.user.is_teacher():
-        messages.warning(request, 'Only teachers can access this page.')
-        return redirect('courses:student_dashboard')
-
     courses = Course.objects.filter(teacher=request.user).annotate(
         student_count=Count('enrollments'),
         task_count=Count('tasks'),
@@ -204,13 +203,9 @@ def teacher_dashboard(request):
     return render(request, 'courses/teacher_dashboard.html', {'courses': courses})
 
 
-@login_required
+@teacher_required
 def course_create(request):
     """Create a new course (teacher only). [Implements M2]"""
-    if not request.user.is_teacher():
-        messages.warning(request, 'Only teachers can create courses.')
-        return redirect('home')
-
     if request.method == 'POST':
         form = CourseForm(request.POST)
         if form.is_valid():
@@ -225,7 +220,7 @@ def course_create(request):
     return render(request, 'courses/course_form.html', {'form': form, 'action': 'Create'})
 
 
-@login_required
+@teacher_required
 def course_edit(request, course_id):
     """Edit an existing course (owner only). [Implements M2]"""
     course = get_object_or_404(Course, id=course_id, teacher=request.user)
@@ -273,7 +268,7 @@ def course_detail(request, course_id):
     return render(request, 'courses/course_detail.html', context)
 
 
-@login_required
+@teacher_required
 def task_add(request, course_id):
     """Add a task to a course (owner teacher only). [Implements M3]"""
     course = get_object_or_404(Course, id=course_id, teacher=request.user)

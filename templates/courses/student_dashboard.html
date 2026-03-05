@@ -26,7 +26,7 @@
     <div class="col-md-4 mb-3">
         <div class="card text-center bg-warning text-dark shadow-sm">
             <div class="card-body">
-                <h2 class="display-4 fw-bold">{{ total_tasks|add:"-"|add:completed_count|default:total_tasks }}</h2>
+                <h2 class="display-4 fw-bold">{{ pending_count }}</h2>
                 <p class="mb-0">Pending Tasks</p>
             </div>
         </div>
