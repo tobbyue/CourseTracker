@@ -3,65 +3,142 @@
 {% block title %}Student Dashboard - CourseTracker{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Student Learning Dashboard</h1>
+<h1 class="mb-4">
+    <i class="bi bi-speedometer2 me-2"></i>Student Dashboard
+</h1>
 
-<!-- Progress Overview Cards -->
-<section aria-label="Progress overview" class="row mb-4">
-    <div class="col-md-4 mb-3">
-        <div class="card text-center bg-primary text-white shadow-sm">
-            <div class="card-body">
-                <h2 class="display-4 fw-bold">{{ joined_count }}</h2>
-                <p class="mb-0">Joined Courses</p>
+<!-- ============================================================
+     Progress Overview Cards + Overall Progress Bar
+     ============================================================ -->
+<section aria-label="Progress overview" class="mb-4">
+    <div class="row mb-3">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center bg-primary text-white shadow-sm stat-card">
+                <div class="card-body py-3">
+                    <h2 class="display-5 fw-bold mb-0">{{ joined_count }}</h2>
+                    <p class="small mb-0"><i class="bi bi-book me-1"></i>Courses</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center bg-success text-white shadow-sm stat-card">
+                <div class="card-body py-3">
+                    <h2 class="display-5 fw-bold mb-0" id="stat-completed">{{ completed_count }}</h2>
+                    <p class="small mb-0"><i class="bi bi-check-circle me-1"></i>Completed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center bg-warning text-dark shadow-sm stat-card">
+                <div class="card-body py-3">
+                    <h2 class="display-5 fw-bold mb-0" id="stat-pending">{{ pending_count }}</h2>
+                    <p class="small mb-0"><i class="bi bi-clock me-1"></i>Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center {% if overdue_count > 0 %}bg-danger{% else %}bg-secondary{% endif %} text-white shadow-sm stat-card">
+                <div class="card-body py-3">
+                    <h2 class="display-5 fw-bold mb-0" id="stat-overdue">{{ overdue_count }}</h2>
+                    <p class="small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Overdue</p>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card text-center bg-success text-white shadow-sm">
-            <div class="card-body">
-                <h2 class="display-4 fw-bold">{{ completed_count }}</h2>
-                <p class="mb-0">Completed Tasks</p>
+    <!-- Overall progress bar -->
+    <div class="card shadow-sm">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-semibold small">Overall Progress</span>
+                <span class="fw-bold small" id="progress-label">{{ progress_pct }}%</span>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-3">
-        <div class="card text-center bg-warning text-dark shadow-sm">
-            <div class="card-body">
-                <h2 class="display-4 fw-bold">{{ pending_count }}</h2>
-                <p class="mb-0">Pending Tasks</p>
+            <div class="progress" style="height: 10px;" role="progressbar"
+                 aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"
+                 aria-label="Task completion progress">
+                <div class="progress-bar {% if progress_pct == 100 %}bg-success{% elif progress_pct >= 50 %}bg-primary{% else %}bg-warning{% endif %}"
+                     id="progress-bar"
+                     style="width: {{ progress_pct }}%; transition: width 0.4s ease;">
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Sort & Filter Bar [S2] -->
+<!-- ============================================================
+     My Courses (per-course progress)
+     ============================================================ -->
+{% if course_progress %}
+<section aria-label="Course progress" class="mb-4">
+    <h2 class="h5 mb-3"><i class="bi bi-journals me-2"></i>My Courses</h2>
+    <div class="row">
+        {% for cp in course_progress %}
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card shadow-sm h-100 course-progress-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge bg-secondary mb-1">{{ cp.course.course_code }}</span>
+                            <h3 class="h6 mb-0">{{ cp.course.title }}</h3>
+                        </div>
+                        <span class="badge {% if cp.progress_pct == 100 %}bg-success{% elif cp.progress_pct >= 50 %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                            {{ cp.progress_pct }}%
+                        </span>
+                    </div>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar {% if cp.progress_pct == 100 %}bg-success{% elif cp.progress_pct >= 50 %}bg-primary{% else %}bg-warning{% endif %}"
+                             style="width: {{ cp.progress_pct }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ cp.completed_tasks }}/{{ cp.total_tasks }} tasks done</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================================
+     Task List with JS-driven Sort / Filter / Course Filter [S2]
+     ============================================================ -->
 <section aria-label="Task list">
     <div class="card shadow-sm">
         <div class="card-header bg-white">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h2 class="h5 mb-0">My Tasks</h2>
+            <div class="row align-items-center g-2">
+                <div class="col-md-3">
+                    <h2 class="h5 mb-0"><i class="bi bi-list-task me-1"></i>My Tasks</h2>
                 </div>
-                <div class="col-md-6">
-                    <form method="get" class="d-flex gap-2 justify-content-end" id="filter-form">
-                        <select name="sort" class="form-select form-select-sm" style="max-width: 160px;"
-                                aria-label="Sort tasks by" onchange="this.form.submit()">
+                <div class="col-md-9">
+                    <div class="d-flex gap-2 justify-content-end flex-wrap" id="filter-bar">
+                        <select id="sort-select" class="form-select form-select-sm"
+                                style="max-width: 160px;" aria-label="Sort tasks by">
                             <option value="deadline" {% if current_sort == 'deadline' %}selected{% endif %}>Sort: Deadline</option>
                             <option value="course" {% if current_sort == 'course' %}selected{% endif %}>Sort: Course</option>
+                            <option value="status" {% if current_sort == 'status' %}selected{% endif %}>Sort: Status</option>
                         </select>
-                        <select name="status" class="form-select form-select-sm" style="max-width: 160px;"
-                                aria-label="Filter by status" onchange="this.form.submit()">
+                        <select id="status-filter" class="form-select form-select-sm"
+                                style="max-width: 150px;" aria-label="Filter by status">
                             <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Tasks</option>
                             <option value="pending" {% if current_filter == 'pending' %}selected{% endif %}>Pending</option>
                             <option value="completed" {% if current_filter == 'completed' %}selected{% endif %}>Completed</option>
+                            <option value="overdue" {% if current_filter == 'overdue' %}selected{% endif %}>Overdue</option>
                         </select>
-                    </form>
+                        {% if course_codes %}
+                        <select id="course-filter" class="form-select form-select-sm"
+                                style="max-width: 150px;" aria-label="Filter by course">
+                            <option value="all">All Courses</option>
+                            {% for code in course_codes %}
+                            <option value="{{ code }}" {% if current_course == code %}selected{% endif %}>{{ code }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
         <div class="card-body p-0">
             {% if task_list %}
             <div class="table-responsive">
-                <table class="table table-hover mb-0" aria-label="Task list">
+                <table class="table table-hover mb-0" id="task-table" aria-label="Task list">
                     <thead class="table-light">
                         <tr>
                             <th scope="col">Task</th>
@@ -72,12 +149,27 @@
                     </thead>
                     <tbody>
                         {% for item in task_list %}
-                        <tr class="task-row {% if item.is_completed %}table-success{% endif %}"
-                            data-task-id="{{ item.task.id }}" data-completed="{{ item.is_completed|yesno:'true,false' }}">
+                        <tr class="task-row {% if item.is_completed %}table-success{% elif item.is_overdue %}table-danger{% elif item.is_due_soon %}table-warning{% endif %}"
+                            data-task-id="{{ item.task.id }}"
+                            data-completed="{{ item.is_completed|yesno:'true,false' }}"
+                            data-overdue="{{ item.is_overdue|yesno:'true,false' }}"
+                            data-due-soon="{{ item.is_due_soon|yesno:'true,false' }}"
+                            data-course="{{ item.task.course.course_code }}"
+                            data-deadline="{{ item.task.deadline|date:'Y-m-d H:i' }}"
+                            data-course-title="{{ item.task.course.title }}">
                             <td>
-                                <a href="{% url 'courses:task_detail' item.task.id %}" class="text-decoration-none">
+                                <a href="{% url 'courses:task_detail' item.task.id %}" class="text-decoration-none fw-semibold">
                                     {{ item.task.title }}
                                 </a>
+                                {% if item.is_overdue %}
+                                <span class="badge bg-danger ms-1" title="Overdue">
+                                    <i class="bi bi-exclamation-circle"></i> Overdue
+                                </span>
+                                {% elif item.is_due_soon %}
+                                <span class="badge bg-warning text-dark ms-1" title="Due soon">
+                                    <i class="bi bi-clock-history"></i> Due soon
+                                </span>
+                                {% endif %}
                             </td>
                             <td>
                                 <span class="badge bg-secondary">{{ item.task.course.course_code }}</span>
@@ -104,7 +196,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center py-5 text-muted">
+            <div class="text-center py-5 text-muted" id="empty-state">
                 <i class="bi bi-inbox display-4"></i>
                 <p class="mt-2">No tasks yet. <a href="{% url 'courses:discover' %}">Discover courses</a> to get started!</p>
             </div>
@@ -116,52 +208,171 @@
 
 {% block extra_js %}
 <script>
-// AJAX task completion toggle [M5]
-document.querySelectorAll('.toggle-complete-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const url = this.dataset.url;
-        const taskId = this.dataset.taskId;
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
-            || '{{ csrf_token }}';
+(function() {
+    'use strict';
 
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
-            const icon = this.querySelector('i');
-            if (data.is_completed) {
-                this.classList.remove('btn-outline-secondary');
-                this.classList.add('btn-success');
-                icon.classList.remove('bi-circle');
-                icon.classList.add('bi-check-circle-fill');
-                this.innerHTML = '<i class="bi bi-check-circle-fill"></i> Done';
-                row.classList.add('table-success');
-                this.setAttribute('aria-label', 'Mark as incomplete');
-            } else {
-                this.classList.remove('btn-success');
-                this.classList.add('btn-outline-secondary');
-                icon.classList.remove('bi-check-circle-fill');
-                icon.classList.add('bi-circle');
-                this.innerHTML = '<i class="bi bi-circle"></i> Complete';
-                row.classList.remove('table-success');
-                this.setAttribute('aria-label', 'Mark as complete');
+    // ============================================================
+    // Client-side Sort & Filter (no page reload) [S2 JS interactivity]
+    // ============================================================
+    const sortSelect = document.getElementById('sort-select');
+    const statusFilter = document.getElementById('status-filter');
+    const courseFilter = document.getElementById('course-filter');
+    const tbody = document.querySelector('#task-table tbody');
+
+    function applyFiltersAndSort() {
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr.task-row'));
+        const sortVal = sortSelect ? sortSelect.value : 'deadline';
+        const statusVal = statusFilter ? statusFilter.value : 'all';
+        const courseVal = courseFilter ? courseFilter.value : 'all';
+
+        // Filter
+        rows.forEach(row => {
+            const completed = row.dataset.completed === 'true';
+            const overdue = row.dataset.overdue === 'true';
+            const courseCode = row.dataset.course;
+            let show = true;
+
+            if (statusVal === 'completed' && !completed) show = false;
+            if (statusVal === 'pending' && completed) show = false;
+            if (statusVal === 'overdue' && !overdue) show = false;
+            if (courseVal !== 'all' && courseCode !== courseVal) show = false;
+
+            row.style.display = show ? '' : 'none';
+        });
+
+        // Sort visible rows
+        const visibleRows = rows.filter(r => r.style.display !== 'none');
+        visibleRows.sort((a, b) => {
+            if (sortVal === 'deadline') {
+                return a.dataset.deadline.localeCompare(b.dataset.deadline);
+            } else if (sortVal === 'course') {
+                return (a.dataset.courseTitle || '').localeCompare(b.dataset.courseTitle || '');
+            } else if (sortVal === 'status') {
+                const aComp = a.dataset.completed === 'true' ? 1 : 0;
+                const bComp = b.dataset.completed === 'true' ? 1 : 0;
+                if (aComp !== bComp) return aComp - bComp;
+                return a.dataset.deadline.localeCompare(b.dataset.deadline);
             }
-            // Announce status change for screen readers
-            const status = document.createElement('div');
-            status.setAttribute('role', 'status');
-            status.setAttribute('aria-live', 'polite');
-            status.className = 'visually-hidden';
-            status.textContent = data.is_completed ? 'Task marked as completed' : 'Task marked as incomplete';
-            document.body.appendChild(status);
-            setTimeout(() => status.remove(), 3000);
+            return 0;
+        });
+
+        // Re-append sorted rows (hidden rows stay at end)
+        visibleRows.forEach(row => tbody.appendChild(row));
+        rows.filter(r => r.style.display === 'none').forEach(row => tbody.appendChild(row));
+
+        // Announce to screen readers
+        announceStatus(`Showing ${visibleRows.length} tasks, sorted by ${sortVal}`);
+    }
+
+    if (sortSelect) sortSelect.addEventListener('change', applyFiltersAndSort);
+    if (statusFilter) statusFilter.addEventListener('change', applyFiltersAndSort);
+    if (courseFilter) courseFilter.addEventListener('change', applyFiltersAndSort);
+
+    // ============================================================
+    // AJAX Task Completion Toggle with Live Stats Update [M5]
+    // ============================================================
+    function updateStatCards(stats) {
+        const completedEl = document.getElementById('stat-completed');
+        const pendingEl = document.getElementById('stat-pending');
+        const progressLabel = document.getElementById('progress-label');
+        const progressBar = document.getElementById('progress-bar');
+
+        if (completedEl) completedEl.textContent = stats.completed;
+        if (pendingEl) pendingEl.textContent = stats.pending;
+        if (progressLabel) progressLabel.textContent = stats.progress_pct + '%';
+        if (progressBar) {
+            progressBar.style.width = stats.progress_pct + '%';
+            progressBar.parentElement.setAttribute('aria-valuenow', stats.progress_pct);
+            // Update color
+            progressBar.className = 'progress-bar';
+            if (stats.progress_pct === 100) progressBar.classList.add('bg-success');
+            else if (stats.progress_pct >= 50) progressBar.classList.add('bg-primary');
+            else progressBar.classList.add('bg-warning');
+        }
+    }
+
+    document.querySelectorAll('.toggle-complete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.url;
+            const taskId = this.dataset.taskId;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || '{{ csrf_token }}';
+            const button = this;
+
+            // Disable button during request
+            button.disabled = true;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+
+                if (data.is_completed) {
+                    button.classList.remove('btn-outline-secondary');
+                    button.classList.add('btn-success');
+                    button.innerHTML = '<i class="bi bi-check-circle-fill"></i> Done';
+                    button.setAttribute('aria-label', 'Mark as incomplete');
+                    row.classList.remove('table-danger', 'table-warning');
+                    row.classList.add('table-success');
+                    row.dataset.completed = 'true';
+                    row.dataset.overdue = 'false';
+                    row.dataset.dueSoon = 'false';
+                    // Remove overdue/due-soon badges
+                    row.querySelectorAll('.badge.bg-danger, .badge.bg-warning').forEach(b => {
+                        if (b.closest('td:first-child')) b.remove();
+                    });
+                } else {
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-secondary');
+                    button.innerHTML = '<i class="bi bi-circle"></i> Complete';
+                    button.setAttribute('aria-label', 'Mark as complete');
+                    row.classList.remove('table-success');
+                    row.dataset.completed = 'false';
+                }
+
+                // Update stat cards with fresh data from server
+                if (data.stats) {
+                    updateStatCards(data.stats);
+                }
+
+                // Re-apply current filters
+                applyFiltersAndSort();
+
+                // Announce for screen readers
+                announceStatus(
+                    data.is_completed ? 'Task marked as completed' : 'Task marked as incomplete'
+                );
+            })
+            .catch(err => {
+                console.error('Toggle failed:', err);
+                announceStatus('Failed to update task. Please try again.');
+            })
+            .finally(() => {
+                button.disabled = false;
+            });
         });
     });
-});
+
+    // ============================================================
+    // Accessibility: Screen Reader Announcements (WCAG 4.1.3)
+    // ============================================================
+    function announceStatus(message) {
+        const el = document.createElement('div');
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.className = 'visually-hidden';
+        el.textContent = message;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3000);
+    }
+
+})();
 </script>
 {% endblock %}

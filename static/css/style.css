@@ -101,9 +101,49 @@ main {
     border-radius: 4px;
 }
 
-/* --- Progress Cards --- */
-.display-4 {
+/* --- Progress Cards & Stats --- */
+.display-4, .display-5 {
     font-weight: 700;
+}
+
+.stat-card .card-body {
+    padding: 1rem;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px) !important;
+}
+
+/* --- Course Progress Cards --- */
+.course-progress-card {
+    transition: border-color 0.2s ease;
+}
+
+.course-progress-card:hover {
+    border-color: #0d6efd;
+}
+
+/* --- Overdue & Due Soon Row Indicators --- */
+.task-row.table-danger td:first-child {
+    border-left: 3px solid #dc3545;
+}
+
+.task-row.table-warning td:first-child {
+    border-left: 3px solid #ffc107;
+}
+
+.task-row.table-success td:first-child {
+    border-left: 3px solid #198754;
+}
+
+/* --- Filter Bar --- */
+#filter-bar .form-select-sm {
+    font-size: 0.8125rem;
+}
+
+/* --- Progress Bar Animation --- */
+.progress-bar {
+    transition: width 0.4s ease, background-color 0.3s ease;
 }
 
 /* --- Responsive adjustments --- */
@@ -116,12 +156,20 @@ main {
         font-size: 2rem;
     }
 
+    .display-5 {
+        font-size: 1.6rem;
+    }
+
     .card-body {
         padding: 1rem;
     }
 
     .table {
         font-size: 0.875rem;
+    }
+
+    #filter-bar {
+        justify-content: start !important;
     }
 }
 
@@ -133,5 +181,9 @@ main {
 
     h1 {
         font-size: 1.5rem;
+    }
+
+    .stat-card .display-5 {
+        font-size: 1.4rem;
     }
 }

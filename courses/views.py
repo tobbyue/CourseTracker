@@ -20,6 +20,7 @@ def student_dashboard(request):
     and task list with sort/filter capabilities.
     [Implements M5, S2]
     """
+    now = timezone.now()
     enrollments = Enrollment.objects.filter(student=request.user).select_related('course')
     enrolled_courses = [e.course for e in enrollments]
 
@@ -33,29 +34,42 @@ def student_dashboard(request):
     ).values_list('task_id', 'is_completed')
     completion_map = dict(completions)
 
-    # Build task list with completion info
+    # Build task list with completion info and deadline status
     task_list = []
     for task in tasks:
+        is_completed = completion_map.get(task.id, False)
+        is_overdue = not is_completed and task.deadline < now
+        is_due_soon = (not is_completed and not is_overdue
+                       and task.deadline <= now + timezone.timedelta(days=3))
         task_list.append({
             'task': task,
-            'is_completed': completion_map.get(task.id, False),
+            'is_completed': is_completed,
+            'is_overdue': is_overdue,
+            'is_due_soon': is_due_soon,
+            'course_code': task.course.course_code,
         })
 
-    # Sort/filter from query parameters
+    # Sort/filter from query parameters (server-side fallback)
     sort_by = request.GET.get('sort', 'deadline')
     filter_status = request.GET.get('status', 'all')
+    filter_course = request.GET.get('course', 'all')
 
     if filter_status == 'completed':
         task_list = [t for t in task_list if t['is_completed']]
     elif filter_status == 'pending':
         task_list = [t for t in task_list if not t['is_completed']]
 
+    if filter_course and filter_course != 'all':
+        task_list = [t for t in task_list if t['course_code'] == filter_course]
+
     if sort_by == 'deadline':
         task_list.sort(key=lambda t: t['task'].deadline)
     elif sort_by == 'course':
         task_list.sort(key=lambda t: t['task'].course.title)
+    elif sort_by == 'status':
+        task_list.sort(key=lambda t: (t['is_completed'], t['task'].deadline))
 
-    # Stats - calculate pending correctly
+    # Stats
     total_tasks = Task.objects.filter(course__in=enrolled_courses).count()
     completed_count = TaskCompletion.objects.filter(
         student=request.user,
@@ -63,6 +77,26 @@ def student_dashboard(request):
         task__course__in=enrolled_courses
     ).count()
     pending_count = total_tasks - completed_count
+    overdue_count = sum(1 for t in task_list if t.get('is_overdue', False))
+    progress_pct = round(completed_count / total_tasks * 100) if total_tasks > 0 else 0
+
+    # Per-course progress for enrolled courses section
+    course_progress = []
+    for course in enrolled_courses:
+        course_tasks = Task.objects.filter(course=course).count()
+        course_done = TaskCompletion.objects.filter(
+            student=request.user, is_completed=True, task__course=course
+        ).count()
+        pct = round(course_done / course_tasks * 100) if course_tasks > 0 else 0
+        course_progress.append({
+            'course': course,
+            'total_tasks': course_tasks,
+            'completed_tasks': course_done,
+            'progress_pct': pct,
+        })
+
+    # Unique course codes for filter dropdown
+    course_codes = sorted(set(t.course.course_code for t in tasks))
 
     context = {
         'enrolled_courses': enrolled_courses,
@@ -70,9 +104,14 @@ def student_dashboard(request):
         'joined_count': len(enrolled_courses),
         'completed_count': completed_count,
         'pending_count': pending_count,
+        'overdue_count': overdue_count,
         'total_tasks': total_tasks,
+        'progress_pct': progress_pct,
+        'course_progress': course_progress,
+        'course_codes': course_codes,
         'current_sort': sort_by,
         'current_filter': filter_status,
+        'current_course': filter_course,
     }
     return render(request, 'courses/student_dashboard.html', context)
 
@@ -183,9 +222,26 @@ def toggle_task_completion(request, task_id):
         completion.completed_at = timezone.now() if completion.is_completed else None
         completion.save()
 
+    # Return updated stats for live dashboard update
+    enrolled_courses = list(
+        Enrollment.objects.filter(student=request.user)
+        .values_list('course_id', flat=True)
+    )
+    total = Task.objects.filter(course_id__in=enrolled_courses).count()
+    done = TaskCompletion.objects.filter(
+        student=request.user, is_completed=True,
+        task__course_id__in=enrolled_courses
+    ).count()
+
     return JsonResponse({
         'is_completed': completion.is_completed,
         'task_id': task.id,
+        'stats': {
+            'completed': done,
+            'pending': total - done,
+            'total': total,
+            'progress_pct': round(done / total * 100) if total > 0 else 0,
+        }
     })
 
 
