@@ -1,6 +1,9 @@
+import json
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.utils import timezone
 from .models import User
+from courses.models import Course, Task, Enrollment, TaskCompletion
 
 
 class UserModelTest(TestCase):
@@ -166,7 +169,7 @@ class HomeRedirectTest(TestCase):
         self.client.login(username='student_home', password='TestPass123!')
         response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 302)
-        self.assertIn('student', response.url)
+        self.assertIn('dashboard', response.url)
 
     def test_teacher_redirects_to_teacher_dashboard(self):
         self.client.login(username='teacher_home', password='TestPass123!')
@@ -330,3 +333,248 @@ class RememberMeTest(TestCase):
             'remember_me': True,
         })
         self.assertFalse(self.client.session.get_expire_at_browser_close())
+
+
+class StudentDashboardViewTest(TestCase):
+    """Tests for the student dashboard view with tasks, stats, and filters."""
+
+    def setUp(self):
+        self.client = Client()
+        self.student = User.objects.create_user(
+            username='dash_student', password='TestPass123!', role='student'
+        )
+        self.teacher = User.objects.create_user(
+            username='dash_teacher', password='TestPass123!', role='teacher'
+        )
+        # Create course with tasks
+        self.course = Course.objects.create(
+            title='Test Course', course_code='TC101',
+            description='A test course', teacher=self.teacher
+        )
+        self.task1 = Task.objects.create(
+            course=self.course, title='Task 1',
+            deadline=timezone.now() + timezone.timedelta(days=7)
+        )
+        self.task2 = Task.objects.create(
+            course=self.course, title='Task 2',
+            deadline=timezone.now() - timezone.timedelta(days=1)  # overdue
+        )
+        self.task3 = Task.objects.create(
+            course=self.course, title='Task 3',
+            deadline=timezone.now() + timezone.timedelta(days=2)  # due soon
+        )
+        # Enroll student
+        Enrollment.objects.create(student=self.student, course=self.course)
+
+    def test_dashboard_loads_with_stats(self):
+        """Dashboard shows correct stat cards."""
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['joined_count'], 1)
+        self.assertEqual(response.context['total_tasks'], 3)
+        self.assertEqual(response.context['completed_count'], 0)
+        self.assertEqual(response.context['pending_count'], 3)
+
+    def test_dashboard_shows_overdue_tasks(self):
+        """Dashboard correctly identifies overdue tasks."""
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        self.assertEqual(response.context['overdue_count'], 1)
+
+    def test_dashboard_progress_zero_when_nothing_done(self):
+        """Progress percentage is 0 when no tasks completed."""
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        self.assertEqual(response.context['progress_pct'], 0)
+
+    def test_dashboard_progress_updates_after_completion(self):
+        """Progress percentage updates after completing a task."""
+        TaskCompletion.objects.create(
+            student=self.student, task=self.task1,
+            is_completed=True, completed_at=timezone.now()
+        )
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        self.assertEqual(response.context['completed_count'], 1)
+        self.assertEqual(response.context['progress_pct'], 33)
+
+    def test_dashboard_course_progress(self):
+        """Per-course progress is included in context."""
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        self.assertEqual(len(response.context['course_progress']), 1)
+        cp = response.context['course_progress'][0]
+        self.assertEqual(cp['course'], self.course)
+        self.assertEqual(cp['total_tasks'], 3)
+
+    def test_dashboard_sort_by_course(self):
+        """Sort by course query param works."""
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(
+            reverse('courses:student_dashboard') + '?sort=course'
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_dashboard_filter_by_status(self):
+        """Filter by completed status query param works."""
+        TaskCompletion.objects.create(
+            student=self.student, task=self.task1,
+            is_completed=True, completed_at=timezone.now()
+        )
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(
+            reverse('courses:student_dashboard') + '?status=completed'
+        )
+        self.assertEqual(len(response.context['task_list']), 1)
+
+    def test_dashboard_empty_when_not_enrolled(self):
+        """Dashboard shows zero tasks when student has no enrollments."""
+        new_student = User.objects.create_user(
+            username='lonely_student', password='TestPass123!', role='student'
+        )
+        self.client.login(username='lonely_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        self.assertEqual(response.context['total_tasks'], 0)
+        self.assertEqual(response.context['joined_count'], 0)
+
+    def test_dashboard_contains_accessibility_landmarks(self):
+        """Dashboard HTML includes aria-label sections for accessibility."""
+        self.client.login(username='dash_student', password='TestPass123!')
+        response = self.client.get(reverse('courses:student_dashboard'))
+        content = response.content.decode()
+        self.assertIn('aria-label="Progress overview"', content)
+        self.assertIn('aria-label="Task list"', content)
+        self.assertIn('aria-live="polite"', content)
+
+
+class ToggleTaskCompletionTest(TestCase):
+    """Tests for the AJAX task completion toggle endpoint."""
+
+    def setUp(self):
+        self.client = Client()
+        self.student = User.objects.create_user(
+            username='toggle_student', password='TestPass123!', role='student'
+        )
+        self.teacher = User.objects.create_user(
+            username='toggle_teacher', password='TestPass123!', role='teacher'
+        )
+        self.course = Course.objects.create(
+            title='Toggle Course', course_code='TG101',
+            description='Test', teacher=self.teacher
+        )
+        self.task = Task.objects.create(
+            course=self.course, title='Toggle Task',
+            deadline=timezone.now() + timezone.timedelta(days=5)
+        )
+        Enrollment.objects.create(student=self.student, course=self.course)
+
+    def test_toggle_creates_completion(self):
+        """First toggle creates a TaskCompletion set to True."""
+        self.client.login(username='toggle_student', password='TestPass123!')
+        response = self.client.post(
+            reverse('courses:toggle_task', args=[self.task.id]),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['is_completed'])
+        self.assertEqual(data['stats']['completed'], 1)
+
+    def test_toggle_twice_uncompletes(self):
+        """Toggling twice reverts back to incomplete."""
+        self.client.login(username='toggle_student', password='TestPass123!')
+        url = reverse('courses:toggle_task', args=[self.task.id])
+        self.client.post(url, content_type='application/json')
+        response = self.client.post(url, content_type='application/json')
+        data = json.loads(response.content)
+        self.assertFalse(data['is_completed'])
+        self.assertEqual(data['stats']['completed'], 0)
+
+    def test_toggle_returns_updated_stats(self):
+        """Toggle response includes correct progress stats."""
+        self.client.login(username='toggle_student', password='TestPass123!')
+        response = self.client.post(
+            reverse('courses:toggle_task', args=[self.task.id]),
+            content_type='application/json'
+        )
+        data = json.loads(response.content)
+        self.assertIn('stats', data)
+        self.assertEqual(data['stats']['total'], 1)
+        self.assertEqual(data['stats']['progress_pct'], 100)
+
+    def test_toggle_requires_post(self):
+        """GET request to toggle should return 405."""
+        self.client.login(username='toggle_student', password='TestPass123!')
+        response = self.client.get(
+            reverse('courses:toggle_task', args=[self.task.id])
+        )
+        self.assertEqual(response.status_code, 405)
+
+    def test_toggle_requires_authentication(self):
+        """Unauthenticated user should be redirected."""
+        response = self.client.post(
+            reverse('courses:toggle_task', args=[self.task.id]),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response.url)
+
+
+class AccessibilityTest(TestCase):
+    """Tests verifying WCAG accessibility features in templates."""
+
+    def setUp(self):
+        self.client = Client()
+        self.student = User.objects.create_user(
+            username='a11y_student', password='TestPass123!', role='student'
+        )
+
+    def test_login_has_skip_link(self):
+        """Login page includes skip-to-main-content link (WCAG 2.1.1)."""
+        response = self.client.get(reverse('accounts:login'))
+        content = response.content.decode()
+        self.assertIn('skip-link', content)
+        self.assertIn('#main-content', content)
+
+    def test_login_has_form_aria_label(self):
+        """Login form has aria-label attribute."""
+        response = self.client.get(reverse('accounts:login'))
+        self.assertContains(response, 'aria-label="Login form"')
+
+    def test_register_has_form_aria_label(self):
+        """Register form has aria-label attribute."""
+        response = self.client.get(reverse('accounts:register'))
+        self.assertContains(response, 'aria-label="Registration form"')
+
+    def test_main_content_landmark(self):
+        """Pages include main landmark with id for skip link."""
+        response = self.client.get(reverse('accounts:login'))
+        self.assertContains(response, 'id="main-content"')
+        self.assertContains(response, '<main')
+
+    def test_nav_has_aria_label(self):
+        """Navigation bar has aria-label for screen readers."""
+        response = self.client.get(reverse('accounts:login'))
+        self.assertContains(response, 'aria-label="Main navigation"')
+
+    def test_profile_has_form_aria_label(self):
+        """Profile edit form has aria-label."""
+        self.client.login(username='a11y_student', password='TestPass123!')
+        response = self.client.get(reverse('accounts:profile'))
+        self.assertContains(response, 'aria-label="Edit profile form"')
+
+    def test_password_change_has_form_aria_label(self):
+        """Password change form has aria-label."""
+        self.client.login(username='a11y_student', password='TestPass123!')
+        response = self.client.get(reverse('accounts:password_change'))
+        self.assertContains(response, 'aria-label="Change password form"')
+
+    def test_messages_have_role_status(self):
+        """Flash messages container has role=status for screen readers."""
+        self.client.login(username='a11y_student', password='TestPass123!')
+        # Login triggers a success message
+        response = self.client.get(reverse('accounts:login'), follow=True)
+        content = response.content.decode()
+        # Check that base.html messages have aria-live
+        self.assertIn('aria-live="polite"', content)

@@ -4,22 +4,31 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h1 class="text-center mb-4">
-                    <i class="bi bi-mortarboard-fill text-primary"></i>
+    <div class="col-lg-5 col-md-6 col-sm-8 col-11">
+        <div class="card shadow-sm auth-card">
+            <div class="card-body p-4 p-sm-5">
+                <h1 class="text-center mb-3">
+                    <i class="bi bi-mortarboard-fill text-primary display-5"></i>
                 </h1>
                 <h2 class="text-center mb-4">Sign In</h2>
 
-                <form method="post" novalidate>
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2" role="alert">
+                    {% for error in form.non_field_errors %}
+                    <p class="mb-0"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" novalidate aria-label="Login form">
                     {% csrf_token %}
 
                     <div class="mb-3">
                         <label for="id_username" class="form-label">Username</label>
                         {{ form.username }}
                         {% if form.username.errors %}
-                        <div class="invalid-feedback d-block" role="alert">
+                        <div class="invalid-feedback d-block" role="alert"
+                             id="username-error">
                             {{ form.username.errors.0 }}
                         </div>
                         {% endif %}
@@ -29,7 +38,8 @@
                         <label for="id_password" class="form-label">Password</label>
                         {{ form.password }}
                         {% if form.password.errors %}
-                        <div class="invalid-feedback d-block" role="alert">
+                        <div class="invalid-feedback d-block" role="alert"
+                             id="password-error">
                             {{ form.password.errors.0 }}
                         </div>
                         {% endif %}
@@ -40,7 +50,7 @@
                         <label class="form-check-label" for="id_remember_me">Remember me</label>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+                    <button type="submit" class="btn btn-primary w-100 py-2 mt-2 btn-touch">
                         <i class="bi bi-box-arrow-in-right me-1"></i>Enter Dashboard
                     </button>
                 </form>
@@ -53,4 +63,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add aria-invalid to fields with errors (WCAG 3.3.1)
+document.querySelectorAll('.invalid-feedback.d-block').forEach(function(errorDiv) {
+    const fieldId = errorDiv.id ? errorDiv.id.replace('-error', '') : null;
+    if (fieldId) {
+        const field = document.getElementById('id_' + fieldId);
+        if (field) {
+            field.setAttribute('aria-invalid', 'true');
+            field.setAttribute('aria-describedby', errorDiv.id);
+            field.classList.add('is-invalid');
+        }
+    }
+});
+</script>
 {% endblock %}

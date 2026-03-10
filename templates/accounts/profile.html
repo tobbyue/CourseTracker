@@ -4,13 +4,13 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <h1 class="mb-4">My Profile</h1>
+    <div class="col-lg-9 col-md-10 col-12">
+        <h1 class="mb-4"><i class="bi bi-person-circle me-2"></i>My Profile</h1>
 
         <div class="row">
             <!-- Profile Info Card -->
-            <div class="col-md-4 mb-4">
-                <div class="card shadow-sm text-center">
+            <div class="col-lg-4 col-md-5 mb-4">
+                <div class="card shadow-sm text-center profile-info-card">
                     <div class="card-body py-4">
                         <div class="mb-3">
                             <i class="bi bi-person-circle display-1 text-primary"></i>
@@ -34,7 +34,7 @@
 
                 <div class="card shadow-sm mt-3">
                     <div class="card-body">
-                        <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary w-100">
+                        <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary w-100 btn-touch">
                             <i class="bi bi-key me-1"></i>Change Password
                         </a>
                     </div>
@@ -42,40 +42,45 @@
             </div>
 
             <!-- Edit Form Card -->
-            <div class="col-md-8 mb-4">
+            <div class="col-lg-8 col-md-7 mb-4">
                 <div class="card shadow-sm">
                     <div class="card-header bg-white">
-                        <h2 class="h5 mb-0">Edit Profile</h2>
+                        <h2 class="h5 mb-0"><i class="bi bi-pencil-square me-1"></i>Edit Profile</h2>
                     </div>
                     <div class="card-body">
-                        <form method="post" novalidate>
+                        <form method="post" novalidate aria-label="Edit profile form">
                             {% csrf_token %}
 
-                            <div class="mb-3">
-                                <label for="id_first_name" class="form-label">First Name</label>
-                                {{ form.first_name }}
-                                {% if form.first_name.errors %}
-                                <div class="invalid-feedback d-block" role="alert">
-                                    {{ form.first_name.errors.0 }}
+                            <div class="row">
+                                <div class="col-sm-6 mb-3">
+                                    <label for="id_first_name" class="form-label">First Name</label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                    <div class="invalid-feedback d-block" role="alert"
+                                         id="first_name-error">
+                                        {{ form.first_name.errors.0 }}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            </div>
 
-                            <div class="mb-3">
-                                <label for="id_last_name" class="form-label">Last Name</label>
-                                {{ form.last_name }}
-                                {% if form.last_name.errors %}
-                                <div class="invalid-feedback d-block" role="alert">
-                                    {{ form.last_name.errors.0 }}
+                                <div class="col-sm-6 mb-3">
+                                    <label for="id_last_name" class="form-label">Last Name</label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                    <div class="invalid-feedback d-block" role="alert"
+                                         id="last_name-error">
+                                        {{ form.last_name.errors.0 }}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
                             </div>
 
                             <div class="mb-3">
                                 <label for="id_email" class="form-label">Email Address</label>
                                 {{ form.email }}
                                 {% if form.email.errors %}
-                                <div class="invalid-feedback d-block" role="alert">
+                                <div class="invalid-feedback d-block" role="alert"
+                                     id="email-error">
                                     {{ form.email.errors.0 }}
                                 </div>
                                 {% endif %}
@@ -88,7 +93,7 @@
                                 <small class="form-text text-muted">Role cannot be changed after registration.</small>
                             </div>
 
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary btn-touch">
                                 <i class="bi bi-check-lg me-1"></i>Save Changes
                             </button>
                         </form>
@@ -98,4 +103,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add aria-invalid to fields with errors (WCAG 3.3.1)
+document.querySelectorAll('.invalid-feedback.d-block').forEach(function(errorDiv) {
+    const fieldId = errorDiv.id ? errorDiv.id.replace('-error', '') : null;
+    if (fieldId) {
+        const field = document.getElementById('id_' + fieldId);
+        if (field) {
+            field.setAttribute('aria-invalid', 'true');
+            field.setAttribute('aria-describedby', errorDiv.id);
+            field.classList.add('is-invalid');
+        }
+    }
+});
+</script>
 {% endblock %}

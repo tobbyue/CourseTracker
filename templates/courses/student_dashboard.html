@@ -57,7 +57,7 @@
                  aria-label="Task completion progress">
                 <div class="progress-bar {% if progress_pct == 100 %}bg-success{% elif progress_pct >= 50 %}bg-primary{% else %}bg-warning{% endif %}"
                      id="progress-bar"
-                     style="width: {{ progress_pct }}%; transition: width 0.4s ease;">
+                     style="width: {{ progress_pct }}%;">
                 </div>
             </div>
         </div>
@@ -98,41 +98,66 @@
 {% endif %}
 
 <!-- ============================================================
-     Task List with JS-driven Sort / Filter / Course Filter [S2]
+     Task List with Full JS Interactivity [S2, Day 6-7]
      ============================================================ -->
 <section aria-label="Task list">
     <div class="card shadow-sm">
         <div class="card-header bg-white">
-            <div class="row align-items-center g-2">
-                <div class="col-md-3">
-                    <h2 class="h5 mb-0"><i class="bi bi-list-task me-1"></i>My Tasks</h2>
+            <!-- Row 1: Title + Search -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h5 mb-0"><i class="bi bi-list-task me-1"></i>My Tasks</h2>
+                <div class="position-relative" style="max-width: 260px; width: 100%;">
+                    <i class="bi bi-search position-absolute" style="left: 10px; top: 50%; transform: translateY(-50%); color: #6c757d;"></i>
+                    <input type="text" id="task-search" class="form-control form-control-sm ps-4"
+                           placeholder="Search tasks... ( / )" aria-label="Search tasks"
+                           autocomplete="off">
                 </div>
-                <div class="col-md-9">
-                    <div class="d-flex gap-2 justify-content-end flex-wrap" id="filter-bar">
-                        <select id="sort-select" class="form-select form-select-sm"
-                                style="max-width: 160px;" aria-label="Sort tasks by">
-                            <option value="deadline" {% if current_sort == 'deadline' %}selected{% endif %}>Sort: Deadline</option>
-                            <option value="course" {% if current_sort == 'course' %}selected{% endif %}>Sort: Course</option>
-                            <option value="status" {% if current_sort == 'status' %}selected{% endif %}>Sort: Status</option>
-                        </select>
-                        <select id="status-filter" class="form-select form-select-sm"
-                                style="max-width: 150px;" aria-label="Filter by status">
-                            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Tasks</option>
-                            <option value="pending" {% if current_filter == 'pending' %}selected{% endif %}>Pending</option>
-                            <option value="completed" {% if current_filter == 'completed' %}selected{% endif %}>Completed</option>
-                            <option value="overdue" {% if current_filter == 'overdue' %}selected{% endif %}>Overdue</option>
-                        </select>
-                        {% if course_codes %}
-                        <select id="course-filter" class="form-select form-select-sm"
-                                style="max-width: 150px;" aria-label="Filter by course">
-                            <option value="all">All Courses</option>
-                            {% for code in course_codes %}
-                            <option value="{{ code }}" {% if current_course == code %}selected{% endif %}>{{ code }}</option>
-                            {% endfor %}
-                        </select>
-                        {% endif %}
-                    </div>
+            </div>
+            <!-- Row 2: Quick filters + Dropdowns -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <!-- Quick filter buttons -->
+                <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Quick filters" id="quick-filters">
+                    <button type="button" class="btn btn-outline-primary active" data-quick="all">
+                        All
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" data-quick="overdue">
+                        <i class="bi bi-exclamation-circle"></i> <span class="d-none d-sm-inline">Overdue</span><span class="d-sm-none">!</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" data-quick="due-today">
+                        Today
+                    </button>
+                    <button type="button" class="btn btn-outline-info" data-quick="due-week">
+                        <span class="d-none d-sm-inline">This Week</span><span class="d-sm-none">Week</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-quick="completed">
+                        Done
+                    </button>
                 </div>
+                <!-- Dropdown filters -->
+                <div class="d-flex gap-2 flex-wrap" id="filter-bar">
+                    <select id="sort-select" class="form-select form-select-sm"
+                            style="max-width: 160px;" aria-label="Sort tasks by">
+                        <option value="deadline">Sort: Deadline</option>
+                        <option value="course">Sort: Course</option>
+                        <option value="status">Sort: Status</option>
+                    </select>
+                    {% if course_codes %}
+                    <select id="course-filter" class="form-select form-select-sm"
+                            style="max-width: 150px;" aria-label="Filter by course">
+                        <option value="all">All Courses</option>
+                        {% for code in course_codes %}
+                        <option value="{{ code }}">{{ code }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                    <button type="button" id="reset-filters" class="btn btn-sm btn-outline-secondary" title="Reset all filters">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Task count indicator -->
+            <div class="mt-2 small text-muted" id="task-count-indicator" aria-live="polite">
+                Showing <strong id="visible-count">{{ task_list|length }}</strong> of <strong>{{ total_tasks }}</strong> tasks
             </div>
         </div>
         <div class="card-body p-0">
@@ -156,17 +181,18 @@
                             data-due-soon="{{ item.is_due_soon|yesno:'true,false' }}"
                             data-course="{{ item.task.course.course_code }}"
                             data-deadline="{{ item.task.deadline|date:'Y-m-d H:i' }}"
-                            data-course-title="{{ item.task.course.title }}">
+                            data-course-title="{{ item.task.course.title }}"
+                            data-task-title="{{ item.task.title|lower }}">
                             <td>
                                 <a href="{% url 'courses:task_detail' item.task.id %}" class="text-decoration-none fw-semibold">
                                     {{ item.task.title }}
                                 </a>
                                 {% if item.is_overdue %}
-                                <span class="badge bg-danger ms-1" title="Overdue">
+                                <span class="badge bg-danger ms-1 deadline-badge" title="Overdue">
                                     <i class="bi bi-exclamation-circle"></i> Overdue
                                 </span>
                                 {% elif item.is_due_soon %}
-                                <span class="badge bg-warning text-dark ms-1" title="Due soon">
+                                <span class="badge bg-warning text-dark ms-1 deadline-badge" title="Due soon">
                                     <i class="bi bi-clock-history"></i> Due soon
                                 </span>
                                 {% endif %}
@@ -181,11 +207,11 @@
                                 </time>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm toggle-complete-btn
+                                <button class="btn btn-sm toggle-complete-btn btn-touch
                                     {% if item.is_completed %}btn-success{% else %}btn-outline-secondary{% endif %}"
                                     data-task-id="{{ item.task.id }}"
                                     data-url="{% url 'courses:toggle_task' item.task.id %}"
-                                    aria-label="{% if item.is_completed %}Mark as incomplete{% else %}Mark as complete{% endif %}">
+                                    aria-label="{% if item.is_completed %}Mark {{ item.task.title }} as incomplete{% else %}Mark {{ item.task.title }} as complete{% endif %}">
                                     <i class="bi {% if item.is_completed %}bi-check-circle-fill{% else %}bi-circle{% endif %}"></i>
                                     {% if item.is_completed %}Done{% else %}Complete{% endif %}
                                 </button>
@@ -194,6 +220,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <!-- No results message (hidden by default) -->
+            <div class="text-center py-4 text-muted d-none" id="no-results">
+                <i class="bi bi-funnel display-5"></i>
+                <p class="mt-2 mb-0">No tasks match your current filters.</p>
+                <button class="btn btn-sm btn-outline-primary mt-2" id="clear-from-empty">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filters
+                </button>
             </div>
             {% else %}
             <div class="text-center py-5 text-muted" id="empty-state">
@@ -212,33 +246,81 @@
     'use strict';
 
     // ============================================================
-    // Client-side Sort & Filter (no page reload) [S2 JS interactivity]
+    // DOM References
     // ============================================================
     const sortSelect = document.getElementById('sort-select');
-    const statusFilter = document.getElementById('status-filter');
     const courseFilter = document.getElementById('course-filter');
+    const taskSearch = document.getElementById('task-search');
+    const quickFilters = document.getElementById('quick-filters');
+    const resetBtn = document.getElementById('reset-filters');
+    const clearFromEmpty = document.getElementById('clear-from-empty');
     const tbody = document.querySelector('#task-table tbody');
+    const visibleCountEl = document.getElementById('visible-count');
+    const noResultsEl = document.getElementById('no-results');
+    const tableWrapper = document.querySelector('.table-responsive');
 
+    // Current state
+    let currentQuick = 'all';
+    let searchQuery = '';
+
+    // ============================================================
+    // Utility: Get today's date string in YYYY-MM-DD format
+    // ============================================================
+    function todayStr() {
+        const d = new Date();
+        return d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
+    }
+
+    function endOfWeekStr() {
+        const d = new Date();
+        d.setDate(d.getDate() + (7 - d.getDay()));
+        return d.getFullYear() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0');
+    }
+
+    // ============================================================
+    // Core: Apply All Filters + Sort (client-side, no reload)
+    // ============================================================
     function applyFiltersAndSort() {
         if (!tbody) return;
         const rows = Array.from(tbody.querySelectorAll('tr.task-row'));
         const sortVal = sortSelect ? sortSelect.value : 'deadline';
-        const statusVal = statusFilter ? statusFilter.value : 'all';
         const courseVal = courseFilter ? courseFilter.value : 'all';
+        const today = todayStr();
+        const weekEnd = endOfWeekStr();
 
-        // Filter
+        let visibleCount = 0;
+
+        // Filter each row
         rows.forEach(row => {
             const completed = row.dataset.completed === 'true';
             const overdue = row.dataset.overdue === 'true';
             const courseCode = row.dataset.course;
+            const deadlineDate = row.dataset.deadline.substring(0, 10);
+            const taskTitle = row.dataset.taskTitle || '';
             let show = true;
 
-            if (statusVal === 'completed' && !completed) show = false;
-            if (statusVal === 'pending' && completed) show = false;
-            if (statusVal === 'overdue' && !overdue) show = false;
+            // Quick filter
+            if (currentQuick === 'completed' && !completed) show = false;
+            if (currentQuick === 'overdue' && !overdue) show = false;
+            if (currentQuick === 'due-today' && (completed || deadlineDate !== today)) show = false;
+            if (currentQuick === 'due-week' && (completed || deadlineDate > weekEnd || deadlineDate < today)) show = false;
+
+            // Course dropdown filter
             if (courseVal !== 'all' && courseCode !== courseVal) show = false;
 
+            // Text search
+            if (searchQuery && !taskTitle.includes(searchQuery) &&
+                !courseCode.toLowerCase().includes(searchQuery) &&
+                !(row.dataset.courseTitle || '').toLowerCase().includes(searchQuery)) {
+                show = false;
+            }
+
             row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
         });
 
         // Sort visible rows
@@ -257,17 +339,104 @@
             return 0;
         });
 
-        // Re-append sorted rows (hidden rows stay at end)
+        // Re-append in order
         visibleRows.forEach(row => tbody.appendChild(row));
         rows.filter(r => r.style.display === 'none').forEach(row => tbody.appendChild(row));
 
-        // Announce to screen readers
-        announceStatus(`Showing ${visibleRows.length} tasks, sorted by ${sortVal}`);
+        // Update count indicator
+        if (visibleCountEl) visibleCountEl.textContent = visibleCount;
+
+        // Show/hide no-results message
+        if (noResultsEl && tableWrapper) {
+            if (visibleCount === 0 && rows.length > 0) {
+                noResultsEl.classList.remove('d-none');
+                tableWrapper.classList.add('d-none');
+            } else {
+                noResultsEl.classList.add('d-none');
+                tableWrapper.classList.remove('d-none');
+            }
+        }
+
+        // Screen reader announcement
+        announceStatus(`Showing ${visibleCount} of ${rows.length} tasks`);
     }
 
+    // ============================================================
+    // Event Listeners: Dropdown filters
+    // ============================================================
     if (sortSelect) sortSelect.addEventListener('change', applyFiltersAndSort);
-    if (statusFilter) statusFilter.addEventListener('change', applyFiltersAndSort);
     if (courseFilter) courseFilter.addEventListener('change', applyFiltersAndSort);
+
+    // ============================================================
+    // Event Listener: Quick filter buttons
+    // ============================================================
+    if (quickFilters) {
+        quickFilters.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-quick]');
+            if (!btn) return;
+
+            // Update active state
+            quickFilters.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            currentQuick = btn.dataset.quick;
+            applyFiltersAndSort();
+        });
+    }
+
+    // ============================================================
+    // Event Listener: Live search with 200ms debounce
+    // ============================================================
+    let searchTimer = null;
+    if (taskSearch) {
+        taskSearch.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                searchQuery = this.value.trim().toLowerCase();
+                applyFiltersAndSort();
+            }, 200);
+        });
+    }
+
+    // ============================================================
+    // Event Listener: Reset all filters
+    // ============================================================
+    function resetAllFilters() {
+        if (sortSelect) sortSelect.value = 'deadline';
+        if (courseFilter) courseFilter.value = 'all';
+        if (taskSearch) taskSearch.value = '';
+        searchQuery = '';
+        currentQuick = 'all';
+        if (quickFilters) {
+            quickFilters.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            quickFilters.querySelector('[data-quick="all"]').classList.add('active');
+        }
+        applyFiltersAndSort();
+    }
+
+    if (resetBtn) resetBtn.addEventListener('click', resetAllFilters);
+    if (clearFromEmpty) clearFromEmpty.addEventListener('click', resetAllFilters);
+
+    // ============================================================
+    // Keyboard Shortcut: "/" to focus search bar
+    // ============================================================
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const active = document.activeElement;
+            const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+            if (!isInput && taskSearch) {
+                e.preventDefault();
+                taskSearch.focus();
+            }
+        }
+        // Escape to clear search and blur
+        if (e.key === 'Escape' && taskSearch && document.activeElement === taskSearch) {
+            taskSearch.value = '';
+            searchQuery = '';
+            taskSearch.blur();
+            applyFiltersAndSort();
+        }
+    });
 
     // ============================================================
     // AJAX Task Completion Toggle with Live Stats Update [M5]
@@ -284,7 +453,6 @@
         if (progressBar) {
             progressBar.style.width = stats.progress_pct + '%';
             progressBar.parentElement.setAttribute('aria-valuenow', stats.progress_pct);
-            // Update color
             progressBar.className = 'progress-bar';
             if (stats.progress_pct === 100) progressBar.classList.add('bg-success');
             else if (stats.progress_pct >= 50) progressBar.classList.add('bg-primary');
@@ -300,7 +468,6 @@
                 || '{{ csrf_token }}';
             const button = this;
 
-            // Disable button during request
             button.disabled = true;
 
             fetch(url, {
@@ -325,9 +492,7 @@
                     row.dataset.overdue = 'false';
                     row.dataset.dueSoon = 'false';
                     // Remove overdue/due-soon badges
-                    row.querySelectorAll('.badge.bg-danger, .badge.bg-warning').forEach(b => {
-                        if (b.closest('td:first-child')) b.remove();
-                    });
+                    row.querySelectorAll('.deadline-badge').forEach(b => b.remove());
                 } else {
                     button.classList.remove('btn-success');
                     button.classList.add('btn-outline-secondary');
@@ -337,15 +502,8 @@
                     row.dataset.completed = 'false';
                 }
 
-                // Update stat cards with fresh data from server
-                if (data.stats) {
-                    updateStatCards(data.stats);
-                }
-
-                // Re-apply current filters
+                if (data.stats) updateStatCards(data.stats);
                 applyFiltersAndSort();
-
-                // Announce for screen readers
                 announceStatus(
                     data.is_completed ? 'Task marked as completed' : 'Task marked as incomplete'
                 );

@@ -141,12 +141,98 @@ main {
     font-size: 0.8125rem;
 }
 
+/* --- Task Search Bar [Day 6-7] --- */
+#task-search {
+    border-radius: 1rem;
+    font-size: 0.8125rem;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+#task-search:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+/* --- Quick Filter Button Group [Day 6-7] --- */
+#quick-filters .btn {
+    font-size: 0.78rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 1rem !important;
+    margin-right: 0.25rem;
+    transition: all 0.15s ease;
+}
+
+#quick-filters .btn.active {
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* --- No Results Message [Day 6-7] --- */
+#no-results {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Task Count Indicator [Day 6-7] --- */
+#task-count-indicator {
+    font-size: 0.78rem;
+}
+
 /* --- Progress Bar Animation --- */
 .progress-bar {
     transition: width 0.4s ease, background-color 0.3s ease;
 }
 
-/* --- Responsive adjustments --- */
+/* --- Auth Card Styling [Day 8-9] --- */
+.auth-card {
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.auth-card .card-body {
+    border-radius: 0.75rem;
+}
+
+/* --- Touch-Friendly Buttons [Day 8-9] (WCAG 2.5.5 - Target Size) --- */
+.btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* --- Profile Info Card [Day 8-9] --- */
+.profile-info-card:hover {
+    transform: none !important;
+}
+
+/* --- Form Input Enhancements [Day 8-9] --- */
+.form-control,
+.form-select {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+}
+
+/* Larger check/radio for touch (WCAG 2.5.5) */
+.form-check-input {
+    width: 1.15em;
+    height: 1.15em;
+    margin-top: 0.2em;
+}
+
+/* --- Deadline Badge Responsive [Day 8-9] --- */
+.deadline-badge {
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   Responsive Adjustments [Day 8-9]
+   ============================================================ */
+
+/* --- Tablet (max 768px) --- */
 @media (max-width: 768px) {
     .navbar-brand {
         font-size: 1.1rem;
@@ -171,8 +257,32 @@ main {
     #filter-bar {
         justify-content: start !important;
     }
+
+    /* Quick filters wrap on tablet */
+    #quick-filters {
+        gap: 0.25rem;
+    }
+
+    /* Stack filter bar below quick filters */
+    .card-header .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+
+    /* Toggle button compact */
+    .toggle-complete-btn {
+        min-width: 80px;
+        font-size: 0.8rem;
+    }
+
+    /* Course progress cards 2-column */
+    .course-progress-card .card-body {
+        padding: 0.75rem;
+    }
 }
 
+/* --- Mobile (max 576px) --- */
 @media (max-width: 576px) {
     .container {
         padding-left: 1rem;
@@ -185,5 +295,102 @@ main {
 
     .stat-card .display-5 {
         font-size: 1.4rem;
+    }
+
+    /* Stat cards: 2 columns on mobile */
+    .stat-card .card-body {
+        padding: 0.65rem;
+    }
+
+    .stat-card .small {
+        font-size: 0.7rem;
+    }
+
+    /* Task search full width */
+    #task-search {
+        max-width: 100% !important;
+    }
+
+    /* Search bar in card header - stack vertically */
+    .card-header .d-flex.justify-content-between.align-items-center.mb-2 {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+
+    .card-header .position-relative {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Quick filter buttons smaller on mobile */
+    #quick-filters .btn {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    /* Hide course column on small screens */
+    #task-table th:nth-child(2),
+    #task-table td:nth-child(2) {
+        display: none;
+    }
+
+    /* Compact deadline column */
+    #task-table th:nth-child(3),
+    #task-table td:nth-child(3) {
+        font-size: 0.78rem;
+    }
+
+    /* Auth pages: reduce padding */
+    .auth-card .card-body {
+        padding: 1.25rem !important;
+    }
+
+    /* Profile page: info card full width */
+    .profile-info-card .display-1 {
+        font-size: 3rem;
+    }
+
+    /* Footer smaller on mobile */
+    footer {
+        font-size: 0.8rem;
+    }
+}
+
+/* --- Print Styles --- */
+@media print {
+    .navbar, footer, .skip-link, #filter-bar, #quick-filters,
+    #task-search, .toggle-complete-btn, #reset-filters {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: none !important;
+    }
+
+    .stat-card {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* --- Reduced Motion Preference (WCAG 2.3.3) [Day 8-9] --- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .card:hover {
+        transform: none;
+    }
+
+    .stat-card:hover {
+        transform: none !important;
     }
 }

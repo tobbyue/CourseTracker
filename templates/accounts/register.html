@@ -4,12 +4,20 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h2 class="text-center mb-4">Create Account</h2>
+    <div class="col-lg-6 col-md-7 col-sm-9 col-11">
+        <div class="card shadow-sm auth-card">
+            <div class="card-body p-4 p-sm-5">
+                <h1 class="text-center mb-4 h2">Create Account</h1>
 
-                <form method="post" novalidate>
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2" role="alert">
+                    {% for error in form.non_field_errors %}
+                    <p class="mb-0"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" novalidate aria-label="Registration form">
                     {% csrf_token %}
 
                     <!-- Role Selection -->
@@ -73,7 +81,7 @@
                         {% endif %}
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+                    <button type="submit" class="btn btn-primary w-100 py-2 mt-2 btn-touch">
                         <i class="bi bi-person-plus me-1"></i>Create Account
                     </button>
                 </form>
