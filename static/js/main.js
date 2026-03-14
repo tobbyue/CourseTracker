@@ -5,8 +5,10 @@
  * Provides client-side interactivity for:
  * - CSRF token handling for AJAX requests
  * - Auto-dismiss alerts
- * - General utility functions
+ *
+ * Loaded with defer attribute for non-blocking performance [Day 12].
  */
+'use strict';
 
 // ============================================================
 // CSRF Token Helper (required for Django AJAX POST requests)
@@ -30,8 +32,9 @@ const csrftoken = getCookie('csrftoken');
 
 // ============================================================
 // Auto-dismiss success/info alerts after 5 seconds
+// defer ensures DOM is ready, so no DOMContentLoaded needed
 // ============================================================
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
     const alerts = document.querySelectorAll('.alert-success, .alert-info');
     alerts.forEach(function (alert) {
         setTimeout(function () {
@@ -41,4 +44,4 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }, 5000);
     });
-});
+})();

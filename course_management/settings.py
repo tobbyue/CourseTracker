@@ -45,6 +45,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Sustainability: cache-control + security headers [Day 12]
+    'course_management.middleware.CacheControlMiddleware',
+    'course_management.middleware.SecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'course_management.urls'
