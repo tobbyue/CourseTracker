@@ -56,4 +56,6 @@ class SecurityHeadersMiddleware:
             'camera=(), microphone=(), geolocation=(), '
             'payment=(), usb=(), magnetometer=()'
         )
+        # Enable DNS prefetching for external resources
+        response['X-DNS-Prefetch-Control'] = 'on'
         return response

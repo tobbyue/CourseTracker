@@ -44,6 +44,8 @@ _Fill in after running Lighthouse in Chrome DevTools_
 | Added `<link rel="preconnect">` for CDN | `base.html` | Reduces DNS lookup + TLS handshake time for Bootstrap CDN |
 | Added `defer` attribute to all `<script>` tags | `base.html` | Eliminates render-blocking JavaScript |
 | Removed redundant `DOMContentLoaded` wrapper | `main.js` | Smaller JS payload; `defer` already ensures DOM readiness |
+| Non-blocking Bootstrap Icons load (`preload` + `onload`) | `base.html` | Icons CSS no longer render-blocking; improves FCP/LCP |
+| `font-display: swap` for icon font | `style.css` | Prevents invisible text during icon font loading |
 | Cache-Control middleware | `middleware.py` | Enables browser caching for static auth pages (5 min TTL) |
 | WhiteNoise compressed static files | `settings.py` | Gzip/Brotli compression for CSS/JS in production |
 
@@ -54,6 +56,7 @@ _Fill in after running Lighthouse in Chrome DevTools_
 | `X-Content-Type-Options: nosniff` header | `middleware.py` | Prevents MIME-type sniffing attacks |
 | `Referrer-Policy: strict-origin-when-cross-origin` | `middleware.py` | Limits referrer info sent to third parties |
 | `Permissions-Policy` header | `middleware.py` | Disables unused browser APIs (camera, mic, etc.) |
+| `X-DNS-Prefetch-Control: on` header | `middleware.py` | Enables DNS prefetching for external resources |
 | HSTS + Secure Cookies (production) | `settings.py` | Enforces HTTPS in production deployment |
 
 ### Accessibility
@@ -61,6 +64,10 @@ _Fill in after running Lighthouse in Chrome DevTools_
 |--------|------|--------|
 | `<meta name="description">` | `base.html` | Improves SEO score; describes page purpose |
 | `<meta name="theme-color">` | `base.html` | Enhances mobile browser chrome appearance |
+| `aria-hidden="true"` on decorative icons | `base.html`, templates | Screen readers skip decorative icons (WCAG 1.1.1) |
+| Fixed heading hierarchy (h1 > h2) | `login.html` | Proper document outline for assistive technology |
+| Removed redundant `role="navigation"` on `<nav>` | `base.html` | Eliminates ARIA redundancy warning |
+| `aria-label` on progress bars | `student_dashboard.html` | Programmatic progress identification (WCAG 1.3.1) |
 | `aria-label` on all forms | Templates | Screen readers announce form purpose (WCAG 1.3.1) |
 | `aria-invalid` on error fields | Templates | Programmatic error identification (WCAG 3.3.1) |
 | Skip-to-content link | `base.html` | Keyboard users can bypass navigation (WCAG 2.4.1) |

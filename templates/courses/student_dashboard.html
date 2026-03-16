@@ -84,7 +84,9 @@
                             {{ cp.progress_pct }}%
                         </span>
                     </div>
-                    <div class="progress mt-2" style="height: 6px;">
+                    <div class="progress mt-2" style="height: 6px;" role="progressbar"
+                         aria-valuenow="{{ cp.progress_pct }}" aria-valuemin="0" aria-valuemax="100"
+                         aria-label="{{ cp.course.title }} progress">
                         <div class="progress-bar {% if cp.progress_pct == 100 %}bg-success{% elif cp.progress_pct >= 50 %}bg-primary{% else %}bg-warning{% endif %}"
                              style="width: {{ cp.progress_pct }}%"></div>
                     </div>
