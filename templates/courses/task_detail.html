@@ -60,8 +60,16 @@
                 <i class="bi bi-check-lg me-1"></i>Mark as Completed
                 {% endif %}
             </button>
+
+            <div id="completion-status-message" class="mt-2 small text-muted" aria-live="polite">
+                {% if is_completed %}
+                    Status: This task is currently marked as completed.
+                {% else %}
+                    Status: This task is currently not marked as completed.
+                {% endif %}
+            </div>
         </div>
-        {% endif %}
+        {% endif %}    
     </div>
 </div>
 {% endblock %}
