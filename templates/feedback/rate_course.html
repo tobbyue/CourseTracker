@@ -16,7 +16,10 @@
                     <!-- Star Rating -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Your Rating</label>
-                        <div class="star-rating d-flex gap-2 fs-3" role="radiogroup" aria-label="Rating">
+                        <p id="rating-help" class="form-text">
+                            Select a star rating from 1 to 5 and optionally add a short comment about your experience.
+                        </p>
+                        <div class="star-rating d-flex gap-2 fs-3" role="radiogroup" aria-label="Rating" aria-describedby="rating-help">
                             {% for radio in form.score %}
                             <div class="form-check form-check-inline">
                                 {{ radio.tag }}
