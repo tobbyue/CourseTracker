@@ -24,7 +24,8 @@
                             <div class="form-check form-check-inline">
                                 {{ radio.tag }}
                                 <label for="{{ radio.id_for_label }}" class="star-label" title="{{ radio.choice_label }}">
-                                    <i class="bi bi-star-fill text-warning"></i>
+                                    <i class="bi bi-star-fill text-warning" aria-hidden="true"></i>
+                                    <span class="visually-hidden">{{ radio.choice_label }}</span>
                                 </label>
                             </div>
                             {% endfor %}

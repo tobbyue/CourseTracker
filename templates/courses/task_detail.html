@@ -22,8 +22,8 @@
                 </p>
             </div>
             <span class="badge fs-6 {% if is_completed %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                {% if is_completed %}<i class="bi bi-check-circle me-1"></i>Completed
-                {% else %}<i class="bi bi-clock me-1"></i>Pending{% endif %}
+                {% if is_completed %}<i class="bi bi-check-circle me-1" aria-hidden="true"></i>Completed
+                {% else %}<i class="bi bi-clock me-1" aria-hidden="true"></i>Pending{% endif %}
             </span>
         </div>
 
@@ -55,9 +55,9 @@
                     data-task-id="{{ task.id }}"
                     data-url="{% url 'courses:toggle_task' task.id %}">
                 {% if is_completed %}
-                <i class="bi bi-check-circle-fill me-1"></i>Completed - Click to Undo
+                <i class="bi bi-check-circle-fill me-1" aria-hidden="true"></i>Completed - Click to Undo
                 {% else %}
-                <i class="bi bi-check-lg me-1"></i>Mark as Completed
+                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Mark as Completed
                 {% endif %}
             </button>
 
