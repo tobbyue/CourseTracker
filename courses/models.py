@@ -59,7 +59,7 @@ class Task(models.Model):
         ordering = ['deadline']
 
     def __str__(self):
-        return f"{self.title} (due: {self.deadline.strftime('%Y-%m-%d')})"
+        return f"{self.course.course_code} - {self.title} (due: {self.deadline.strftime('%Y-%m-%d')})"
 
 
 class Enrollment(models.Model):
@@ -121,6 +121,8 @@ class TaskCompletion(models.Model):
                 name='unique_task_completion'
             )
         ]
+        ordering = ['-completed_at']
+        verbose_name_plural = 'Tasks completions'
 
     def __str__(self):
         status = "Completed" if self.is_completed else "Pending"
