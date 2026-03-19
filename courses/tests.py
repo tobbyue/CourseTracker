@@ -44,6 +44,14 @@ class CourseModelTest(TestCase):
         Enrollment.objects.create(student=self.student, course=self.course)
         with self.assertRaises(Exception):
             Enrollment.objects.create(student=self.student, course=self.course)
+    
+    def test_enrolled_count_multiple_students(self):
+        student2 = User.objects.create_user(
+            username='student2', password='testpass123', role='student'
+        )
+        Enrollment.objects.create(student=self.student, course=self.course)
+        Enrollment.objects.create(student=student2, course=self.course)
+        self.assertEqual(self.course.enrolled_count(), 2)
 
 
 class TaskModelTest(TestCase):
@@ -85,6 +93,8 @@ class TaskModelTest(TestCase):
         with self.assertRaises(Exception):
             TaskCompletion.objects.create(student=self.student, task=self.task)
 
+    def test_task_string_representation(self):
+        self.assertIn('Assignment 1', str(self.task))
 
 class CourseViewTest(TestCase):
     """Tests for course-related views."""
